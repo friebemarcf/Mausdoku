@@ -92,7 +92,7 @@ canvas{display:block;margin:6px auto;border-radius:8px}
 <canvas id="conf"></canvas>
 <script src="config.js"></script>
 <script>
-const $=id=>document.getElementById(id),BIN0='6af157f3ac6210605a78c4e7',API='https://api.jsonbin.io/v3/b/',DEFAULT_HASH='e034925946959cbab12ec9a62de81645774342fa96703cb9724f34eb532b6769',VER='play-2';
+const $=id=>document.getElementById(id),BIN0='6b007b3fac6210605a97e9cf',API='https://api.jsonbin.io/v3/b/',DEFAULT_HASH='e034925946959cbab12ec9a62de81645774342fa96703cb9724f34eb532b6769',VER='play-2';
 const BACKEND=String((window.MAUSDOKU&&window.MAUSDOKU.backend)||'').trim();
 const LD=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},SV=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 let cfg=Object.assign({key:'',bin:BIN0,codeHash:'',noStats:false},LD('mdplay_cfg',{})),prog=LD('mdplay_prog',{}),levels=LD('mdplay_levels',[]),lst=LD('mdplay_lst',{}),stats=LD('mdplay_stats',{}),outbox=LD('mdplay_out',[]),U={tab:'list',lvl:null,admin:false,single:false,fin:null},G=null,A=null,rate={hard:0,fun:0};
