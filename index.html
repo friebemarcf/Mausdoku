@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Mausdoku</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mausdoku"><meta name="theme-color" content="#9333ea">
+<style>
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+html,body{height:100%;overscroll-behavior:none;touch-action:manipulation}
+body{height:100vh;height:100dvh;font:15px system-ui,sans-serif;color:#4a3e4e;background:linear-gradient(135deg,#fff5f7,#f3e8ff);display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{padding:8px 10px 0}
+#logo{font-size:22px;text-align:center;color:#9333ea;padding:4px 0 8px}
+.tabs{display:flex;gap:6px;padding-bottom:8px}
+.tab{flex:1;padding:11px 4px;border:0;border-radius:10px;background:#fff;font-weight:600;color:#64748b;font-size:14px}
+.tab.on{background:#9333ea;color:#fff}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 10px 30px}
+section[hidden]{display:none}
+.card{background:#fff;border-radius:14px;padding:10px;margin-bottom:10px;box-shadow:0 4px 14px #e879f926}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.b{padding:11px 14px;border:0;border-radius:10px;background:#c084fc;color:#fff;font-weight:700;font-size:14px}
+.b.g{background:#4ade80;color:#14532d}.b.d{background:#fca5a5;color:#7f1d1d}.b.s{background:#e2e8f0;color:#334155}.b.sm{padding:8px 10px}
+.b:disabled{opacity:.4}
+input{padding:9px;border:1px solid #cbd5e1;border-radius:8px;font-size:16px;user-select:text;-webkit-user-select:text;min-width:0}
+input.w{flex:1}
+canvas{display:block;margin:6px auto;border-radius:8px}
+.msg{font-size:13px;min-height:18px;margin:4px 0;line-height:1.5;color:#64748b}
+.lv{display:flex;gap:12px;align-items:center}
+.lv canvas{margin:0;flex:none;background:#f1f5f9}
+.lt{flex:1;min-width:0}.lt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt .s{font-size:12px;color:#64748b;margin-top:2px}
+.bar{height:6px;background:#e2e8f0;border-radius:3px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#c084fc,#4ade80)}
+.gal{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gal .card{margin:0;text-align:center}.gal canvas{background:#f1f5f9;margin:0 auto 6px}
+.ar{display:flex;gap:6px;align-items:center;margin:6px 0}
+.ar input{flex:1}
+#game{position:fixed;inset:0;background:#fff5f7;z-index:20;display:none;flex-direction:column;align-items:center;padding:calc(env(safe-area-inset-top) + 8px) 10px calc(env(safe-area-inset-bottom) + 12px);overflow-y:auto}
+#game.on{display:flex}
+#gc{touch-action:none}
+#dlg{position:fixed;inset:0;background:#0006;z-index:40;display:none;align-items:center;justify-content:center;padding:20px}
+#dlg.on{display:flex}
+#dlgB{background:#fff;border-radius:16px;padding:18px;max-width:380px;width:100%;line-height:1.5}
+#dlgB h3{color:#9333ea;margin-bottom:8px}#dlgB ol{padding-left:20px;margin:8px 0}
+#conf{position:fixed;inset:0;z-index:50;pointer-events:none;display:none}
+#vic{text-align:center;background:#fff;border-radius:14px;padding:12px;margin:8px 0;width:100%;max-width:420px;box-shadow:0 4px 14px #4ade8055}
+</style></head><body>
+<header><div id="logo">🐭 Mausdoku</div>
+<div class="tabs"><button class="tab" id="t_list" onclick="show('list')">🧩 Puzzles</button><button class="tab" id="t_gal" onclick="show('gal')">🖼 Gallery</button><button class="tab" id="t_adm" onclick="show('adm')" hidden>🔧 Admin</button></div></header>
+<main>
+<section id="s_list">
+<div class="row"><span class="msg" id="lst" style="flex:1;margin:0"></span><button class="b s sm" onclick="loadLevels()">🔄 Refresh</button></div>
+<div id="levels"></div>
+<div class="row" style="justify-content:center"><button class="b s sm" onclick="installDlg()">📱 Add to Home Screen</button></div>
+</section>
+<section id="s_level" hidden>
+<div class="row"><button class="b s" onclick="backToList()">← Puzzles</button><b id="lvT" style="flex:1;text-align:center"></b></div>
+<div class="card"><canvas id="mc"></canvas><div class="msg" style="text-align:center" id="lvH">Tap a block to solve it</div>
+<div id="lvB" class="msg" style="text-align:center;color:#16a34a;font-weight:700" hidden>🧀 Puzzle complete! Find it in the Gallery.</div>
+<div class="row" style="justify-content:center"><button class="b s sm" onclick="resetLevel()">Reset this puzzle</button></div></div>
+</section>
+<section id="s_gal" hidden><div class="gal" id="gal"></div></section>
+<section id="s_adm" hidden>
+<div class="card"><b>Cloud connection</b>
+<div class="row"><input class="w" id="key" type="password" placeholder="jsonbin Master Key" onchange="cfg.key=this.value.trim();SV('mdplay_cfg',cfg)"></div>
+<div class="row"><input class="w" id="bin" placeholder="Bin ID" onchange="cfg.bin=this.value.trim();SV('mdplay_cfg',cfg)"></div>
+<div class="row"><button class="b" onclick="admLoad()">📥 Load puzzle list</button><button class="b s" onclick="lockAdmin()">🔒 Lock</button></div></div>
+<div class="card" id="admC" hidden><b>Edit puzzles</b>
+<div class="msg">Rename, reorder or delete. Nothing changes in the cloud until you press Save.</div>
+<div id="admL"></div>
+<div class="msg" id="admS"></div>
+<div class="row"><button class="b g" onclick="admSave()">💾 Save to cloud</button><button class="b s" onclick="admLoad()">Discard changes</button></div></div>
+<div class="card"><div class="row"><button class="b s" onclick="admUndo()">↩ Undo last save</button><button class="b s" onclick="changeCode()">🔑 Change code</button></div><div class="msg" id="admM"></div></div>
+</section>
+</main>
+<div id="game">
+<div class="row" style="width:100%;max-width:420px"><button class="b g" onclick="closeGame()">✓ Close</button><b id="gT" style="flex:1;text-align:center"></b></div>
+<canvas id="gc"></canvas>
+<div class="msg" style="text-align:center" id="gH"></div>
+<div id="vic" hidden><div id="vm" style="font-weight:700;color:#16a34a;margin-bottom:8px"></div><button class="b g" onclick="closeGame()">Continue</button></div>
+<div class="row" id="gB" style="justify-content:center"><button class="b s" onclick="gundo()">↩ Undo</button><button class="b s" onclick="gredo()">↪ Redo</button><button class="b s" id="gm" onclick="gmode()"></button><button class="b d" onclick="greset()">Clear</button></div>
+</div>
+<div id="dlg"><div id="dlgB"></div></div>
+<canvas id="conf"></canvas>
+<script>
+const $=id=>document.getElementById(id),BIN0='6af157f3ac6210605a78c4e7',API='https://api.jsonbin.io/v3/b/',DEFAULT_HASH='e034925946959cbab12ec9a62de81645774342fa96703cb9724f34eb532b6769';
+const LD=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},SV=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let cfg=Object.assign({key:'',bin:BIN0,codeHash:''},LD('mdplay_cfg',{})),prog=LD('mdplay_prog',{}),levels=LD('mdplay_levels',[]),U={tab:'list',lvl:null,admin:false,single:false},G=null,A=null;
+const QUOTES=["🎉 Cheese secured! You are a master logic detective.","🐭 Sneaky squeaks! Brilliant solving.","🧀 Outstanding move! The local mice are proud.","✨ Boom! Logic prevailed seamlessly.","🌸 High paws! You totally cooked that puzzle."];
+// --- block double-tap zoom ---
+let lt=0;document.addEventListener('touchend',e=>{const n=Date.now();if(n-lt<350&&!/INPUT/.test(e.target.tagName))e.preventDefault();lt=n},{passive:false});
+['gesturestart','gesturechange','dblclick'].forEach(t=>document.addEventListener(t,e=>e.preventDefault()));
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+(()=>{const c=document.createElement('canvas');c.width=c.height=180;const x=c.getContext('2d');x.fillStyle='#9333ea';x.fillRect(0,0,180,180);x.font='110px serif';x.textAlign='center';x.textBaseline='middle';x.fillText('🐭',90,98);const l=document.createElement('link');l.rel='apple-touch-icon';l.href=c.toDataURL();document.head.appendChild(l)})();
+
+const isSolved=b=>!!(prog[b.id]&&prog[b.id].s),started=b=>!!prog[b.id],zero=n=>Array.from({length:n},()=>Array(n).fill(0));
+const getL=id=>levels.find(l=>l.id===id);
+function show(t){U.tab=t;['list','gal','adm'].forEach(n=>$('t_'+n).classList.toggle('on',n==t));$('s_list').hidden=!(t=='list'&&!U.lvl);$('s_level').hidden=!(t=='list'&&U.lvl);$('s_gal').hidden=t!='gal';$('s_adm').hidden=t!='adm';
+if(t=='list')U.lvl?drawLevel():renderList();if(t=='gal')renderGal();if(t=='adm'){$('key').value=cfg.key;$('bin').value=cfg.bin}$('t_adm').hidden=!U.admin;document.querySelector('main').scrollTop=0}
+
+// --- drawing shared ---
+function drawMaster(cv,l,maxW,maxH,big){const W=l.canvasWidth,H=l.canvasHeight,cs=Math.min(maxW/W,maxH/H),dpr=devicePixelRatio||1,pw=W*cs,ph=H*cs;cv.width=Math.round(pw*dpr);cv.height=Math.round(ph*dpr);cv.style.width=pw+'px';cv.style.height=ph+'px';const x=cv.getContext('2d');x.scale(dpr,dpr);x.fillStyle='#f1f5f9';x.fillRect(0,0,pw,ph);
+l.blocks.forEach(b=>{const s=isSolved(b);if(s){for(let r=0;r<b.size;r++)for(let c=0;c<b.size;c++){x.fillStyle=b.colors[b.regions[r][c]]||'#fff';x.fillRect((b.x+c)*cs,(b.y+r)*cs,cs+.5,cs+.5)}}else{x.fillStyle=started(b)?'#e9d5ff':'#cbd5e1';x.fillRect(b.x*cs,b.y*cs,b.size*cs,b.size*cs)}
+if(big){x.strokeStyle=s?'#22c55e':'#9333ea';x.lineWidth=2;x.strokeRect(b.x*cs+1,b.y*cs+1,b.size*cs-2,b.size*cs-2);if(!s&&b.size*cs>26){x.font='bold '+Math.min(22,b.size*cs/3)+'px system-ui';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#7c3aed';x.fillText(b.size+'×'+b.size,(b.x+b.size/2)*cs,(b.y+b.size/2)*cs)}}});return cs}
+const ttl=(l,i)=>l.title||`Puzzle #${i+1} (${l.canvasWidth}×${l.canvasHeight})`;
+
+// --- level list ---
+function renderList(){const box=$('levels');box.innerHTML='';if(!levels.length){const d=document.createElement('div');d.className='card msg';d.textContent='No puzzles loaded yet. Check your connection and press Refresh.';box.appendChild(d);return}
+levels.forEach((l,i)=>{const n=l.blocks.length,k=l.blocks.filter(isSolved).length,pct=n?Math.round(k/n*100):0,d=document.createElement('div');d.className='card lv';const c=document.createElement('canvas');drawMaster(c,l,52,52,false);const t=document.createElement('div');t.className='lt';const b=document.createElement('b'),s=document.createElement('div'),bar=document.createElement('div'),f=document.createElement('i');b.textContent=(pct==100?'🏆 ':'')+ttl(l,i);s.className='s';s.textContent=`${k}/${n} blocks solved · ${pct}%`;bar.className='bar';f.style.width=pct+'%';bar.appendChild(f);t.append(b,s,bar);d.append(c,t);d.onclick=()=>openLevel(l.id);box.appendChild(d)})}
+async function loadLevels(){const m=$('lst');m.textContent='Loading…';try{const rec=await fetchCloud();levels=rec.levels;SV('mdplay_levels',levels.map(l=>({...l,blocks:l.blocks.map(b=>({id:b.id,x:b.x,y:b.y,size:b.size,regions:b.regions,colors:b.colors,solutionGrid:b.solutionGrid}))})));m.textContent=`☁️ ${levels.length} puzzles`}catch(e){m.textContent=levels.length?'📴 Offline — showing your last saved list':'⚠️ '+e.message}
+if(U.tab=='list'){if(U.lvl&&!getL(U.lvl))U.lvl=null;show('list')}}
+async function fetchCloud(){const r=await fetch(API+cfg.bin+'/latest?t='+Date.now(),{headers:cfg.key?{'X-Master-Key':cfg.key}:{}});if(!r.ok)throw Error('Could not load puzzles (jsonbin '+r.status+')');const j=await r.json(),rec=j.record||j;if(!Array.isArray(rec.levels))throw Error('No "levels" list found in the bin.');return rec}
+
+// --- level view ---
+function openLevel(id){const l=getL(id);if(!l)return;U.lvl=id;U.single=l.blocks.length==1;if(U.single)return openGame(l.blocks[0].id);show('list')}
+function backToList(){U.lvl=null;show('list')}
+function drawLevel(){const l=getL(U.lvl);if(!l)return backToList();$('lvT').textContent=ttl(l,levels.indexOf(l));const cv=$('mc');cv.cs=drawMaster(cv,l,Math.min(innerWidth-44,460),innerHeight*.55,true);const done=l.blocks.every(isSolved);$('lvB').hidden=!done;$('lvH').hidden=done}
+$('mc').onpointerup=e=>{const l=getL(U.lvl);if(!l)return;const r=e.target.getBoundingClientRect(),cs=r.width/l.canvasWidth,px=(e.clientX-r.left)/cs,py=(e.clientY-r.top)/cs,b=l.blocks.find(b=>px>=b.x&&px<b.x+b.size&&py>=b.y&&py<b.y+b.size);if(b)openGame(b.id)};
+function resetLevel(){const l=getL(U.lvl);if(l&&confirm('Reset all progress in this puzzle?')){l.blocks.forEach(b=>delete prog[b.id]);SV('mdplay_prog',prog);drawLevel()}}
+
+// --- playing a block ---
+const gc=$('gc');
+function openGame(bid){const l=getL(U.lvl),b=l&&l.blocks.find(x=>x.id==bid);if(!b)return;const p=prog[b.id],N=b.size,ok=p&&p.g&&p.g.length==N;G={b,N,grid:ok?JSON.parse(JSON.stringify(p.g)):zero(N),undo:[],redo:[],mode:'x',lt:null,drag:null,done:isSolved(b),cs:20};
+$('gT').textContent=`${N}×${N}`;$('vic').hidden=true;$('game').classList.add('on');gmodeUI();gdraw()}
+function closeGame(){if(!G)return;persist();G=null;$('game').classList.remove('on');if(U.single){U.lvl=null;U.single=false}show('list')}
+function persist(){const b=G.b,any=G.grid.some(r=>r.some(v=>v));if(G.done)prog[b.id]={s:1,g:G.grid};else if(any)prog[b.id]={s:0,g:G.grid};else delete prog[b.id];SV('mdplay_prog',prog)}
+function gmodeUI(){$('gm').textContent=G.mode=='x'?'Tap: ❌':'Tap: 🐭';$('gH').textContent=G.done?'✅ Solved!':G.mode=='x'?'Tap = ❌ · double-tap = 🐭 · drag to paint ❌':'Tap = place/remove 🐭 · drag does nothing'}
+function gmode(){G.mode=G.mode=='x'?'m':'x';G.lt=null;gmodeUI()}
+const snap=()=>{G.undo.push(JSON.stringify(G.grid));if(G.undo.length>100)G.undo.shift();G.redo=[]};
+function gundo(){if(G.done||!G.undo.length)return;G.redo.push(JSON.stringify(G.grid));G.grid=JSON.parse(G.undo.pop());G.lt=null;persist();gdraw()}
+function gredo(){if(G.done||!G.redo.length)return;G.undo.push(JSON.stringify(G.grid));G.grid=JSON.parse(G.redo.pop());G.lt=null;persist();gdraw()}
+function greset(){if(G.done||!G.grid.some(r=>r.some(v=>v)))return;snap();G.grid=zero(G.N);G.lt=null;persist();gdraw()}
+function conf(N,g){const m=[],bad=new Set();for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(g[r][c]===1)m.push([r,c]);for(let i=0;i<m.length;i++)for(let j=i+1;j<m.length;j++){const p=m[i],q=m[j];if(p[0]==q[0]||p[1]==q[1]||(N>3&&Math.abs(p[0]-q[0])<2&&Math.abs(p[1]-q[1])<2)){bad.add(p[0]+','+p[1]);bad.add(q[0]+','+q[1])}}return bad}
+function gdraw(){const{b,N,grid:g}=G,dpr=devicePixelRatio||1,cs=G.cs=Math.max(8,Math.floor(Math.min(innerWidth-24,innerHeight*.56,460)/N)),S=N*cs;gc.width=S*dpr;gc.height=S*dpr;gc.style.width=gc.style.height=S+'px';const x=gc.getContext('2d');x.scale(dpr,dpr);
+for(let r=0;r<N;r++)for(let c=0;c<N;c++){x.fillStyle=b.colors[b.regions[r][c]]||'#fff';x.fillRect(c*cs,r*cs,cs,cs)}
+x.fillStyle='#ef444488';conf(N,g).forEach(k=>{const[r,c]=k.split(',');x.fillRect(c*cs,r*cs,cs,cs)});
+x.strokeStyle='#0002';x.lineWidth=1;x.beginPath();for(let i=1;i<N;i++){x.moveTo(i*cs,0);x.lineTo(i*cs,S);x.moveTo(0,i*cs);x.lineTo(S,i*cs)}x.stroke();
+x.strokeStyle='#1e293b';x.lineWidth=2.5;x.beginPath();for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(c<N-1&&b.regions[r][c]!=b.regions[r][c+1]){x.moveTo((c+1)*cs,r*cs);x.lineTo((c+1)*cs,(r+1)*cs)}if(r<N-1&&b.regions[r][c]!=b.regions[r+1][c]){x.moveTo(c*cs,(r+1)*cs);x.lineTo((c+1)*cs,(r+1)*cs)}}x.stroke();x.strokeRect(0,0,S,S);
+x.textAlign='center';x.textBaseline='middle';for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(g[r][c]===1){x.font=Math.floor(cs*.68)+'px serif';x.fillText('🐭',(c+.5)*cs,(r+.55)*cs)}else if(g[r][c]===2){x.font=Math.floor(cs*.5)+'px serif';x.fillText('❌',(c+.5)*cs,(r+.55)*cs)}}}
+const cellAt=e=>{const r=gc.getBoundingClientRect(),c=Math.floor((e.clientX-r.left)/G.cs),y=Math.floor((e.clientY-r.top)/G.cs);return c<0||y<0||c>=G.N||y>=G.N?null:[y,c]};
+gc.onpointerdown=e=>{if(!G||G.done)return;const p=cellAt(e);if(!p)return;gc.setPointerCapture(e.pointerId);const[r,c]=p,key=r+','+c,now=Date.now(),g=G.grid,cur=g[r][c];G.drag=null;G.last=key;
+if(G.mode=='m'){snap();g[r][c]=cur==1?0:1}
+else if(G.lt&&G.lt.key==key&&now-G.lt.t<320){if(!G.lt.pushed)snap();g[r][c]=G.lt.prev==1?0:1;G.lt=null}
+else if(cur==1){G.lt={key,t:now,prev:1,pushed:false};return}
+else{snap();const v=cur==2?0:2;g[r][c]=v;G.drag=v;G.lt={key,t:now,prev:cur,pushed:true}}
+persist();gdraw();win()};
+gc.onpointermove=e=>{if(!G||G.drag===null||G.done)return;const p=cellAt(e);if(!p)return;const key=p[0]+','+p[1];if(key==G.last)return;G.last=key;const g=G.grid;if(g[p[0]][p[1]]!==1&&g[p[0]][p[1]]!==G.drag){g[p[0]][p[1]]=G.drag;G.lt=null;gdraw()}};
+gc.onpointerup=gc.onpointercancel=()=>{if(G&&G.drag!==null){G.drag=null;persist()}};
+function win(){const{b,N,grid:g}=G;for(let r=0;r<N;r++)for(let c=0;c<N;c++)if((b.solutionGrid[r][c]===1)!==(g[r][c]===1))return;G.done=true;persist();$('vm').textContent=QUOTES[Math.floor(Math.random()*QUOTES.length)];$('vic').hidden=false;gmodeUI();confetti()}
+function confetti(){const c=$('conf'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;c.style.display='block';const P=Array.from({length:70},()=>({x:Math.random()*c.width,y:-20-Math.random()*c.height*.4,v:2+Math.random()*4,s:5+Math.random()*7,h:Math.random()*360,w:Math.random()*6}));let f=0;(function a(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.x+=Math.sin(p.w+=.1)*1.5;x.fillStyle=`hsl(${p.h} 80% 65%)`;x.fillRect(p.x,p.y,p.s,p.s*.6)});if(++f<130)requestAnimationFrame(a);else c.style.display='none'})()}
+
+// --- gallery ---
+function renderGal(){const box=$('gal');box.innerHTML='';const done=levels.filter(l=>l.blocks.length&&l.blocks.every(isSolved));if(!done.length){box.style.display='block';box.innerHTML='<div class="card msg">No finished artworks yet. Solve every block of a puzzle to see it here!</div>';return}box.style.display='';
+done.forEach(l=>{const d=document.createElement('div');d.className='card';const c=document.createElement('canvas');drawMaster(c,l,150,150,false);const t=document.createElement('div');t.style.cssText='font-weight:700;font-size:13px;margin-bottom:6px';t.textContent=ttl(l,levels.indexOf(l));const b=document.createElement('button');b.className='b sm';b.textContent='Download 📱';b.onclick=()=>wallpaper(l);d.append(c,t,b);box.appendChild(d)})}
+function wallpaper(l){const cv=document.createElement('canvas');cv.width=1080;cv.height=1920;const x=cv.getContext('2d');x.fillStyle='#fff5f7';x.fillRect(0,0,1080,1920);const s=Math.floor(Math.min(960/l.canvasWidth,1600/l.canvasHeight)),ox=(1080-l.canvasWidth*s)/2,oy=(1920-l.canvasHeight*s)/2;l.blocks.forEach(b=>{for(let r=0;r<b.size;r++)for(let c=0;c<b.size;c++){x.fillStyle=b.colors[b.regions[r][c]]||'#fff';x.fillRect(ox+(b.x+c)*s,oy+(b.y+r)*s,s,s)}});const a=document.createElement('a');a.download='mausdoku-'+(l.title||'artwork').replace(/[^\w-]+/g,'_')+'.png';a.href=cv.toDataURL('image/png');a.click()}
+
+// --- dialogs / install hint ---
+function dlg(html){$('dlgB').innerHTML=html;$('dlg').classList.add('on')}
+function hideDlg(){$('dlg').classList.remove('on')}
+let deferred=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e});
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function installDlg(){const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Mac/.test(navigator.platform));
+dlg(`<h3>📱 Use Mausdoku as an app</h3><div>Full screen, no browser bars, and it opens straight from your home screen.</div>`+(ios?`<ol><li>Open this page in <b>Safari</b></li><li>Tap the <b>Share</b> button (square with an arrow)</li><li>Scroll down and tap <b>Add to Home Screen</b></li><li>Tap <b>Add</b></li></ol>`:`<ol><li>Tap the <b>⋮ menu</b> in your browser</li><li>Choose <b>Install app</b> or <b>Add to Home screen</b></li><li>Confirm</li></ol>`)+`<div class="row" style="justify-content:flex-end">`+(deferred?`<button class="b g" id="inst">Install now</button>`:'')+`<button class="b s" onclick="hideDlg()">Got it</button></div>`);
+if(deferred)$('inst').onclick=async()=>{hideDlg();deferred.prompt();deferred=null}}
+
+// --- admin ---
+async function sha(s){if(!crypto.subtle)throw Error('Needs https');const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mausdoku:'+s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+$('logo').onpointerdown=()=>{clearTimeout(U.lp);U.lp=setTimeout(()=>{U.admin?show('adm'):codeDlg()},1200)};
+['onpointerup','onpointerleave','onpointercancel'].forEach(k=>$('logo')[k]=()=>clearTimeout(U.lp));
+$('logo').oncontextmenu=e=>e.preventDefault();
+function codeDlg(){dlg(`<h3>🔑 Secret code</h3><div class="row"><input class="w" id="cd" type="password" autocomplete="off"></div><div class="msg" id="cm"></div><div class="row" style="justify-content:flex-end"><button class="b s" onclick="hideDlg()">Cancel</button><button class="b" id="cok">Unlock</button></div>`);$('cok').onclick=async()=>{try{if(await sha($('cd').value)==(cfg.codeHash||DEFAULT_HASH)){U.admin=true;hideDlg();show('adm')}else $('cm').textContent='Wrong code.'}catch(e){$('cm').textContent=e.message}}}
+function lockAdmin(){U.admin=false;A=null;show('list')}
+function changeCode(){dlg(`<h3>🔑 New secret code</h3><div class="msg">Saved on this device only.</div><div class="row"><input class="w" id="nc" type="password" autocomplete="off" placeholder="At least 6 characters"></div><div class="row" style="justify-content:flex-end"><button class="b s" onclick="hideDlg()">Cancel</button><button class="b" id="nok">Save</button></div>`);$('nok').onclick=async()=>{const v=$('nc').value;if(v.length<6)return;cfg.codeHash=await sha(v);SV('mdplay_cfg',cfg);hideDlg();$('admM').textContent='✅ Code changed on this device.'}}
+const am=t=>$('admM').textContent=t;
+async function admLoad(){try{am('Loading…');const rec=await fetchCloud();A={order:rec.levels.map(l=>l.id),orig:rec.levels.map(l=>l.id),titles:{},old:Object.fromEntries(rec.levels.map(l=>[l.id,l])),del:new Set()};$('admC').hidden=false;admDraw();am(`Loaded ${rec.levels.length} puzzles.`)}catch(e){am('⚠️ '+e.message+' Nothing was changed.')}}
+const tOf=id=>id in A.titles?A.titles[id]:(A.old[id].title||'');
+function admDraw(){const box=$('admL');box.innerHTML='';A.order.forEach((id,i)=>{const l=A.old[id],r=document.createElement('div');r.className='ar';const n=document.createElement('span');n.textContent=(i+1)+'.';n.style.width='22px';const inp=document.createElement('input');inp.value=tOf(id);inp.placeholder=`Puzzle (${l.canvasWidth}×${l.canvasHeight}, ${l.blocks.length} blocks)`;inp.oninput=()=>{A.titles[id]=inp.value;admStat()};const mk=(t,f,c)=>{const b=document.createElement('button');b.className='b sm '+c;b.textContent=t;b.onclick=f;return b};
+r.append(n,inp,mk('⬆',()=>mv(i,-1),'s'),mk('⬇',()=>mv(i,1),'s'),mk('🗑',()=>del(i),'d'));box.appendChild(r)});admStat()}
+function mv(i,d){const j=i+d;if(j<0||j>=A.order.length)return;[A.order[i],A.order[j]]=[A.order[j],A.order[i]];admDraw()}
+function del(i){const id=A.order[i],l=A.old[id];if(!confirm(`Delete "${tOf(id)||'Puzzle '+(i+1)}" from the list? It is only removed from the cloud when you press Save.`))return;A.order.splice(i,1);A.del.add(id);admDraw()}
+function diff(){const ren=Object.keys(A.titles).filter(id=>!A.del.has(id)&&A.titles[id]!==(A.old[id].title||'')).length,keep=A.orig.filter(id=>!A.del.has(id)),re=keep.join()!=A.order.join();return{ren,del:A.del.size,re}}
+function admStat(){const d=diff(),p=[];if(d.ren)p.push(d.ren+' renamed');if(d.del)p.push(d.del+' deleted');if(d.re)p.push('order changed');$('admS').textContent=p.length?'Unsaved: '+p.join(', '):'No changes yet.'}
+async function admSave(){if(!A)return;const d=diff();if(!d.ren&&!d.del&&!d.re)return am('Nothing to save.');if(!cfg.key)return am('Enter your Master Key above first.');
+if(!confirm(`Save to the cloud?\n${d.ren} renamed, ${d.del} deleted${d.re?', order changed':''}.`))return;
+try{am('Saving…');const rec=await fetchCloud(),by=Object.fromEntries(rec.levels.map(l=>[l.id,l]));SV('mdplay_backup',{t:Date.now(),levels:rec.levels});const out=[];A.order.forEach(id=>{if(by[id]&&!A.del.has(id)){out.push(id in A.titles?{...by[id],title:A.titles[id].trim()}:by[id]);delete by[id]}});Object.keys(by).forEach(id=>{if(!A.del.has(id)&&!A.order.includes(id))out.push(by[id])});
+const r=await fetch(API+cfg.bin,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':cfg.key},body:JSON.stringify({...rec,levels:out})});if(!r.ok)throw Error('jsonbin answered '+r.status);await loadLevels();await admLoad();am(`✅ Saved (${out.length} puzzles). A backup of the previous list was kept on this device.`)}catch(e){am('⚠️ '+e.message+' Nothing was changed.')}}
+async function admUndo(){const b=LD('mdplay_backup',null);if(!b)return am('No backup on this device yet.');if(!cfg.key)return am('Enter your Master Key above first.');if(!confirm(`Restore the list from before your last save (${b.levels.length} puzzles)?`))return;try{const rec=await fetchCloud(),r=await fetch(API+cfg.bin,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':cfg.key},body:JSON.stringify({...rec,levels:b.levels})});if(!r.ok)throw Error('jsonbin answered '+r.status);am('✅ Restored.');await loadLevels();await admLoad()}catch(e){am('⚠️ '+e.message)}}
+
+// --- start ---
+addEventListener('resize',()=>{if(G)gdraw();else if(U.lvl&&U.tab=='list')drawLevel()});
+show('list');loadLevels();
+if(!LD('mdplay_seen',0)&&!standalone()){SV('mdplay_seen',1);setTimeout(installDlg,600)}
+</script></body></html>
